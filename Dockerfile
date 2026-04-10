@@ -3,7 +3,7 @@ FROM node:18-slim
 
 # ── 1. Libs del sistema para Chromium ──
 RUN apt-get update && apt-get install -y \
-    chromium \
+    chromium-browser \
     fonts-freefont-ttf \
     fonts-liberation \
     libglib2.0-0 \
@@ -45,8 +45,8 @@ COPY package*.json ./
 
 # ── 3. Variables de entorno también antes de npm install ──
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-ENV CHROME_PATH=/usr/bin/chromium
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV CHROME_PATH=/usr/bin/chromium-browser
 
 # ── 4. npm install + limpiar la caché de Puppeteer por las dudas ──
 RUN npm install --omit=dev \

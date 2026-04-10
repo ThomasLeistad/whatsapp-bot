@@ -42,8 +42,8 @@ services:
       FUZZY_THRESHOLD:  ${FUZZY_THRESHOLD:-0.8}
       LOG_LEVEL:        ${LOG_LEVEL:-info}
       # Puppeteer/Chromium
-      CHROME_PATH:                  /usr/bin/chromium
-      PUPPETEER_EXECUTABLE_PATH:    /usr/bin/chromium
+      CHROME_PATH:                      /usr/bin/chromium-browser
+      PUPPETEER_EXECUTABLE_PATH:        /usr/bin/chromium-browser
       PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true"
     volumes:
       # Persistir sesión de WhatsApp (evita re-escanear el QR)
@@ -58,24 +58,24 @@ services:
     shm_size: '256mb'  # Necesario para Chromium/Puppeteer
 
   # ── MySQL (opcional: borrá si ya tenés DB externa) ──
-  # db:
-  #   image: mysql:8.0
-  #   container_name: wa-cobranzas-db
-  #   restart: unless-stopped
-  #   environment:
-  #     MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_cambiar}
-  #     MYSQL_DATABASE:      ${DB_NAME}
-  #     MYSQL_USER:          ${DB_USER}
-  #     MYSQL_PASSWORD:      ${DB_PASSWORD}
-  #   volumes:
-  #     - mysql_data:/var/lib/mysql
-  #   ports:
-  #     - "3306:3306"
-  #   healthcheck:
-  #     test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USER}", "-p${DB_PASSWORD}"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
+  db:
+    image: mysql:8.0
+    container_name: wa-cobranzas-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_cambiar}
+      MYSQL_DATABASE:      ${DB_NAME}
+      MYSQL_USER:          ${DB_USER}
+      MYSQL_PASSWORD:      ${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USER}", "-p${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   wa_sessions:
