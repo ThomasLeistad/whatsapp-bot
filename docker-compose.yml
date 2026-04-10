@@ -42,8 +42,8 @@ services:
       FUZZY_THRESHOLD:  ${FUZZY_THRESHOLD:-0.8}
       LOG_LEVEL:        ${LOG_LEVEL:-info}
       # Puppeteer/Chromium
-      CHROME_PATH:                      /usr/bin/chromium-browser
-      PUPPETEER_EXECUTABLE_PATH:        /usr/bin/chromium-browser
+      CHROME_PATH: /usr/bin/google-chrome-stable
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome-stable
       PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true"
     volumes:
       # Persistir sesión de WhatsApp (evita re-escanear el QR)
