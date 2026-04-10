@@ -1,10 +1,10 @@
 {
   "name": "whatsapp-cobranzas",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Bot de automatización de cobranzas vía WhatsApp para Onlysoft",
   "main": "src/index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node src/index.js",
     "dev": "nodemon src/index.js"
   },
   "dependencies": {

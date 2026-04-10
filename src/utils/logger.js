@@ -1,6 +1,10 @@
 // src/utils/logger.js
 const winston = require('winston');
-const path = require('path');
+const path    = require('path');
+const fs      = require('fs');
+
+const logsDir = process.env.LOGS_DIR || './logs';
+if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
@@ -16,17 +20,17 @@ const logger = winston.createLogger({
     new winston.transports.Console({
       format: winston.format.combine(
         winston.format.colorize(),
-        winston.format.printf(({ timestamp, level, message }) => {
-          return `[${timestamp}] ${level}: ${message}`;
-        })
+        winston.format.printf(({ timestamp, level, message }) =>
+          `[${timestamp}] ${level}: ${message}`
+        )
       )
     }),
     new winston.transports.File({
-      filename: path.join(process.env.LOGS_DIR || './logs', 'error.log'),
+      filename: path.join(logsDir, 'error.log'),
       level: 'error'
     }),
     new winston.transports.File({
-      filename: path.join(process.env.LOGS_DIR || './logs', 'combined.log')
+      filename: path.join(logsDir, 'combined.log')
     })
   ]
 });

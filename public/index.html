@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhatsApp Cobranzas — Onlysoft</title>
+<style>
+  :root {
+    --bg: #0f1117; --bg2: #1a1d27; --bg3: #252836;
+    --border: #2e3144; --text: #e2e8f0; --muted: #8892a4;
+    --green: #22c55e; --amber: #f59e0b; --red: #ef4444;
+    --blue: #3b82f6; --purple: #8b5cf6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; min-height: 100vh; }
+
+  /* LOGIN */
+  #login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .login-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 40px; width: 360px; }
+  .login-card h1 { font-size: 22px; margin-bottom: 8px; }
+  .login-card p  { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .form-group input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 14px; }
+  .form-group input:focus { outline: none; border-color: var(--blue); }
+  .btn { width: 100%; background: var(--blue); color: #fff; border: none; border-radius: 8px; padding: 11px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn:hover { opacity: .9; }
+  .error-msg { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); border-radius: 8px; padding: 10px 12px; font-size: 13px; color: #f87171; margin-bottom: 16px; display: none; }
+
+  /* APP */
+  #app-screen { display: none; }
+  .sidebar { position: fixed; top: 0; left: 0; width: 220px; height: 100vh; background: var(--bg2); border-right: 1px solid var(--border); padding: 20px 0; z-index: 100; }
+  .sidebar-logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); }
+  .sidebar-logo h2 { font-size: 16px; font-weight: 700; }
+  .sidebar-logo span { font-size: 12px; color: var(--muted); }
+  .sidebar nav { padding: 16px 0; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 14px; color: var(--muted); cursor: pointer; border-left: 3px solid transparent; }
+  .nav-item:hover, .nav-item.active { color: var(--text); background: rgba(255,255,255,.04); border-left-color: var(--blue); }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .sidebar-footer { position: absolute; bottom: 20px; left: 0; right: 0; padding: 0 20px; }
+  .whatsapp-status { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 10px 12px; background: var(--bg3); border-radius: 8px; border: 1px solid var(--border); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); flex-shrink: 0; }
+  .dot.connected { background: var(--green); }
+
+  .main { margin-left: 220px; padding: 28px; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* Stats */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .stat-card .label { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .stat-card .value { font-size: 28px; font-weight: 700; }
+  .stat-card .sub   { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .v-green { color: var(--green); }
+  .v-amber { color: var(--amber); }
+  .v-red   { color: var(--red); }
+  .v-blue  { color: var(--blue); }
+
+  /* Table */
+  .table-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .table-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .table-header h3 { font-size: 15px; font-weight: 600; }
+  .filter-bar { display: flex; gap: 8px; }
+  .filter-btn { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 12px; color: var(--muted); cursor: pointer; }
+  .filter-btn.active { background: rgba(59,130,246,.15); border-color: var(--blue); color: var(--blue); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 12px 20px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; background: var(--bg3); font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+  .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .badge-green  { background: rgba(34,197,94,.12); color: #4ade80; }
+  .badge-amber  { background: rgba(245,158,11,.12); color: #fbbf24; }
+  .badge-red    { background: rgba(239,68,68,.12); color: #f87171; }
+  .badge-blue   { background: rgba(59,130,246,.12); color: #60a5fa; }
+  .badge-gray   { background: rgba(100,116,139,.12); color: #94a3b8; }
+
+  /* QR */
+  #qr-container { text-align: center; padding: 40px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; max-width: 360px; margin: 0 auto; }
+  #qr-container h3 { margin-bottom: 8px; }
+  #qr-container p  { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  #qr-canvas { background: #fff; padding: 12px; border-radius: 8px; display: inline-block; }
+
+  .section-title { font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .search-input { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); font-size: 13px; width: 240px; }
+  .search-input:focus { outline: none; border-color: var(--blue); }
+  .empty { padding: 48px 20px; text-align: center; color: var(--muted); font-size: 14px; }
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; font-size: 13px; z-index: 999; opacity: 0; transform: translateY(10px); transition: all .3s; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .btn-sm { background: rgba(59,130,246,.15); color: var(--blue); border: 1px solid rgba(59,130,246,.3); border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+  .btn-sm:hover { background: rgba(59,130,246,.25); }
+  .btn-danger { background: rgba(239,68,68,.15); color: #f87171; border: 1px solid rgba(239,68,68,.3); }
+  .btn-danger:hover { background: rgba(239,68,68,.25); }
+  #live-feed { max-height: 280px; overflow-y: auto; }
+  .feed-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .feed-item:last-child { border-bottom: none; }
+  .feed-icon { font-size: 16px; margin-top: 1px; }
+  .feed-text { flex: 1; }
+  .feed-text strong { display: block; margin-bottom: 2px; }
+  .feed-text span { color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <h1>🤖 WhatsApp Cobranzas</h1>
+    <p>Onlysoft — Panel de administración</p>
+    <div class="error-msg" id="login-error">Credenciales incorrectas</div>
+    <div class="form-group">
+      <label>Usuario</label>
+      <input type="text" id="login-user" placeholder="admin" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label>Contraseña</label>
+      <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn" onclick="doLogin()">Ingresar</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen">
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <h2>📋 Cobranzas</h2>
+      <span>Onlysoft Bot</span>
+    </div>
+    <nav>
+      <div class="nav-item active" onclick="showPage('dashboard')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" onclick="showPage('comprobantes')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Comprobantes
+      </div>
+      <div class="nav-item" onclick="showPage('socios')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Socios / Alias
+      </div>
+      <div class="nav-item" onclick="showPage('whatsapp')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        WhatsApp
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="whatsapp-status" id="wa-status-bar">
+        <div class="dot" id="wa-dot"></div>
+        <span id="wa-status-text">Desconectado</span>
+      </div>
+      <button class="btn" style="margin-top:10px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:400;" onclick="doLogout()">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="section-title">Dashboard</div>
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card"><div class="label">Confirmados hoy</div><div class="value v-green" id="s-confirmados">—</div></div>
+        <div class="stat-card"><div class="label">Esperando confirmación</div><div class="value v-amber" id="s-esperando">—</div></div>
+        <div class="stat-card"><div class="label">Pendientes</div><div class="value v-blue" id="s-pendientes">—</div></div>
+        <div class="stat-card"><div class="label">Rechazados hoy</div><div class="value v-red" id="s-rechazados">—</div></div>
+        <div class="stat-card"><div class="label">Monto acreditado hoy</div><div class="value v-green" id="s-monto">—</div><div class="sub">ARS</div></div>
+        <div class="stat-card"><div class="label">Socios aprendidos</div><div class="value v-blue" id="s-socios">—</div></div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Actividad en tiempo real</h3>
+        </div>
+        <div id="live-feed" style="padding: 0 20px;">
+          <div class="empty">Sin actividad aún</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPROBANTES -->
+    <div class="page" id="page-comprobantes">
+      <div class="page-header">
+        <div class="section-title" style="margin:0">Comprobantes</div>
+        <div class="filter-bar">
+          <button class="filter-btn active" onclick="filtrarComp('', this)">Todos</button>
+          <button class="filter-btn" onclick="filtrarComp('esperando_confirmacion', this)">Esperando</button>
+          <button class="filter-btn" onclick="filtrarComp('confirmado', this)">Confirmados</button>
+          <button class="filter-btn" onclick="filtrarComp('rechazado', this)">Rechazados</button>
+        </div>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Desde</th><th>Nombre extraído</th><th>Monto</th><th>Pedido match</th><th>Estado</th><th>Fecha</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="comp-tbody"><tr><td colspan="8" class="empty">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SOCIOS -->
+    <div class="page" id="page-socios">
+      <div class="page-header">
+        <div class="section-title" style="margin:0">Socios / Alias aprendidos</div>
+        <input class="search-input" type="text" placeholder="Buscar nombre, alias, email..." oninput="buscarSocios(this.value)" id="socios-search">
+      </div>
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th><th>Alias MP</th><th>CBU</th><th>Nombre en MP</th><th>Email</th><th>Pedido</th><th>Usos</th>
+            </tr>
+          </thead>
+          <tbody id="socios-tbody"><tr><td colspan="7" class="empty">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- WHATSAPP -->
+    <div class="page" id="page-whatsapp">
+      <div class="section-title">Estado WhatsApp</div>
+      <div id="qr-container">
+        <h3>Escanear QR</h3>
+        <p>Usá WhatsApp en tu teléfono para escanear el código y conectar el bot</p>
+        <div id="qr-canvas"><span style="color:#666;font-size:13px;">Esperando QR del servidor...</span></div>
+        <p style="margin-top:16px;color:var(--muted);font-size:12px;">El QR se actualiza automáticamente</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+// Importar qrcode como CDN
+const qrScript = document.createElement('script');
+qrScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+document.head.appendChild(qrScript);
+
+const API = '';
+let socket;
+let compFiltro = '';
+let sociosBusqueda = '';
+let feedItems = [];
+
+// ── Toast ──
+function toast(msg, type='info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.borderColor = type === 'ok' ? 'rgba(34,197,94,.4)' : type === 'err' ? 'rgba(239,68,68,.4)' : 'var(--border)';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── Auth ──
+async function doLogin() {
+  const u = document.getElementById('login-user').value;
+  const p = document.getElementById('login-pass').value;
+  const r = await fetch(`${API}/api/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ usuario: u, password: p })
+  });
+  if (r.ok) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    initApp();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+  }
+}
+
+async function doLogout() {
+  await fetch(`${API}/api/logout`, { method: 'POST' });
+  location.reload();
+}
+
+document.getElementById('login-pass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+// ── Check session on load ──
+(async () => {
+  const r = await fetch(`${API}/api/me`);
+  const d = await r.json();
+  if (d.autenticado) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    initApp();
+  }
+})();
+
+// ── Navigation ──
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (id === 'comprobantes') loadComprobantes();
+  if (id === 'socios')       loadSocios();
+  if (id === 'dashboard')    loadStats();
+}
+
+// ── Init ──
+function initApp() {
+  loadStats();
+  loadComprobantes();
+  loadSocios();
+  initSocket();
+  setInterval(loadStats, 30000);
+}
+
+// ── Socket.io ──
+function initSocket() {
+  socket = io();
+  socket.on('status', d => {
+    const dot  = document.getElementById('wa-dot');
+    const text = document.getElementById('wa-status-text');
+    dot.classList.toggle('connected', d.conectado);
+    text.textContent = d.conectado ? 'Conectado' : (d.mensaje || 'Desconectado');
+  });
+  socket.on('qr', qr => {
+    const container = document.getElementById('qr-canvas');
+    container.innerHTML = '';
+    qrScript.onload ? renderQR(container, qr) : (qrScript.onload = () => renderQR(container, qr));
+    if (typeof QRCode !== 'undefined') renderQR(container, qr);
+  });
+  socket.on('nuevo_comprobante', d => {
+    addFeed('📄', `Nuevo comprobante de ${d.from}`, `Monto: $${d.datos?.monto || 'N/D'} — Nombre: ${d.datos?.nombre || 'N/D'}`);
+    loadStats();
+    loadComprobantes();
+  });
+  socket.on('pago_confirmado', d => {
+    addFeed('✅', `Pago confirmado (${d.tipo})`, `Comprobante #${d.comprobante_id} → Pedido #${d.pedidoId}`);
+    loadStats();
+  });
+}
+
+function renderQR(container, qr) {
+  if (typeof QRCode === 'undefined') return;
+  new QRCode(container, { text: qr, width: 220, height: 220, colorDark: '#000', colorLight: '#fff' });
+}
+
+function addFeed(icon, title, sub) {
+  feedItems.unshift({ icon, title, sub, time: new Date().toLocaleTimeString('es-AR') });
+  if (feedItems.length > 20) feedItems.pop();
+  renderFeed();
+}
+
+function renderFeed() {
+  const el = document.getElementById('live-feed');
+  if (!feedItems.length) { el.innerHTML = '<div class="empty">Sin actividad aún</div>'; return; }
+  el.innerHTML = feedItems.map(f =>
+    `<div class="feed-item"><div class="feed-icon">${f.icon}</div><div class="feed-text"><strong>${f.title}</strong><span>${f.sub} · ${f.time}</span></div></div>`
+  ).join('');
+}
+
+// ── Stats ──
+async function loadStats() {
+  const r = await fetch(`${API}/api/stats`);
+  if (!r.ok) return;
+  const d = await r.json();
+  document.getElementById('s-confirmados').textContent = d.confirmados_hoy || 0;
+  document.getElementById('s-esperando').textContent   = d.esperando || 0;
+  document.getElementById('s-pendientes').textContent  = d.pendientes || 0;
+  document.getElementById('s-rechazados').textContent  = d.rechazados_hoy || 0;
+  document.getElementById('s-socios').textContent      = d.total_socios || 0;
+  const monto = parseFloat(d.monto_total || 0);
+  document.getElementById('s-monto').textContent = '$' + monto.toLocaleString('es-AR', { minimumFractionDigits: 0 });
+}
+
+// ── Comprobantes ──
+function filtrarComp(estado, btn) {
+  compFiltro = estado;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadComprobantes();
+}
+
+const estadoBadge = {
+  confirmado:              '<span class="badge badge-green">Confirmado</span>',
+  esperando_confirmacion:  '<span class="badge badge-amber">Esperando</span>',
+  pendiente:               '<span class="badge badge-blue">Pendiente</span>',
+  rechazado:               '<span class="badge badge-red">Rechazado</span>',
+  error_ocr:               '<span class="badge badge-gray">Error OCR</span>',
+  duplicado:               '<span class="badge badge-gray">Duplicado</span>',
+};
+
+async function loadComprobantes() {
+  const url = `${API}/api/comprobantes?limit=50${compFiltro ? '&estado=' + compFiltro : ''}`;
+  const r   = await fetch(url);
+  if (!r.ok) return;
+  const d = await r.json();
+  const tb = document.getElementById('comp-tbody');
+  if (!d.rows.length) { tb.innerHTML = '<tr><td colspan="8" class="empty">Sin resultados</td></tr>'; return; }
+  tb.innerHTML = d.rows.map(c => `
+    <tr>
+      <td>#${c.id}</td>
+      <td>${c.whatsapp_from.replace('@c.us', '')}</td>
+      <td>${c.nombre_extraido || '<span style="color:var(--muted)">—</span>'}</td>
+      <td>${c.monto_extraido ? '$' + parseFloat(c.monto_extraido).toLocaleString('es-AR') : '—'}</td>
+      <td>${c.pedido_nombre ? c.pedido_nombre + ' ' + (c.pedido_apellido || '') : '<span style="color:var(--muted)">Sin match</span>'}</td>
+      <td>${estadoBadge[c.estado] || c.estado}</td>
+      <td style="color:var(--muted);font-size:12px">${new Date(c.creado).toLocaleString('es-AR')}</td>
+      <td><a href="${API}/api/comprobantes/${c.id}/imagen" target="_blank" class="btn-sm">Ver</a></td>
+    </tr>
+  `).join('');
+}
+
+// ── Socios ──
+let sociosTimer;
+function buscarSocios(q) {
+  clearTimeout(sociosTimer);
+  sociosTimer = setTimeout(() => { sociosBusqueda = q; loadSocios(); }, 300);
+}
+
+async function loadSocios() {
+  const url = `${API}/api/socios?limit=50${sociosBusqueda ? '&q=' + encodeURIComponent(sociosBusqueda) : ''}`;
+  const r   = await fetch(url);
+  if (!r.ok) return;
+  const d = await r.json();
+  const tb = document.getElementById('socios-tbody');
+  if (!d.rows.length) { tb.innerHTML = '<tr><td colspan="7" class="empty">Sin socios registrados aún</td></tr>'; return; }
+  tb.innerHTML = d.rows.map(s => `
+    <tr>
+      <td>${s.nombre || ''} ${s.apellido || ''}</td>
+      <td>${s.alias_mp || '<span style="color:var(--muted)">—</span>'}</td>
+      <td style="font-size:11px;color:var(--muted)">${s.cbu || '—'}</td>
+      <td>${s.nombre_mp || '—'}</td>
+      <td style="font-size:12px">${s.email || '—'}</td>
+      <td>#${s.pedidoID || s.pedido_id || '—'}</td>
+      <td><span class="badge badge-blue">${s.veces_usado}x</span></td>
+    </tr>
+  `).join('');
+}
+</script>
+</body>
+</html>

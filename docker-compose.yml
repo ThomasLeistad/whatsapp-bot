@@ -1,0 +1,84 @@
+# docker-compose.yml — WhatsApp Cobranzas
+# Para desarrollo local o deploy en Dokploy
+#
+# USO:
+#   1. Copiá .env.example a .env y completá las variables
+#   2. docker compose up -d
+#   3. Abrí http://localhost:3000 y escaneá el QR
+#
+# NOTA Dokploy:
+#   Si tu MySQL ya corre en otro servicio (ej: tu DB de Onlysoft),
+#   borrá el servicio "db" de abajo y apuntá DB_HOST a esa IP/hostname.
+
+services:
+  # ── Bot WhatsApp ──
+  bot:
+    build: .
+    container_name: wa-cobranzas-bot
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      # Base de datos
+      DB_HOST:     ${DB_HOST}
+      DB_PORT:     ${DB_PORT:-3306}
+      DB_USER:     ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME:     ${DB_NAME}
+      # Dashboard
+      PORT:            ${PORT:-3000}
+      SESSION_SECRET:  ${SESSION_SECRET}
+      ADMIN_USER:      ${ADMIN_USER}
+      ADMIN_PASSWORD:  ${ADMIN_PASSWORD}
+      # WhatsApp
+      ADMIN_WHATSAPP_NUMBER: ${ADMIN_WHATSAPP_NUMBER}
+      # Directorios
+      COMPROBANTES_DIR: /app/comprobantes
+      SESSIONS_DIR:     /app/sessions
+      LOGS_DIR:         /app/logs
+      # OCR
+      TESSERACT_LANG:   ${TESSERACT_LANG:-spa}
+      # Matching
+      FUZZY_THRESHOLD:  ${FUZZY_THRESHOLD:-0.8}
+      LOG_LEVEL:        ${LOG_LEVEL:-info}
+      # Puppeteer/Chromium
+      CHROME_PATH:                  /usr/bin/chromium
+      PUPPETEER_EXECUTABLE_PATH:    /usr/bin/chromium
+      PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true"
+    volumes:
+      # Persistir sesión de WhatsApp (evita re-escanear el QR)
+      - wa_sessions:/app/sessions
+      # Persistir comprobantes descargados
+      - wa_comprobantes:/app/comprobantes
+      # Persistir logs
+      - wa_logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    shm_size: '256mb'  # Necesario para Chromium/Puppeteer
+
+  # ── MySQL (opcional: borrá si ya tenés DB externa) ──
+  db:
+    image: mysql:8.0
+    container_name: wa-cobranzas-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_cambiar}
+      MYSQL_DATABASE:      ${DB_NAME}
+      MYSQL_USER:          ${DB_USER}
+      MYSQL_PASSWORD:      ${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USER}", "-p${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  wa_sessions:
+  wa_comprobantes:
+  wa_logs:
+  mysql_data:

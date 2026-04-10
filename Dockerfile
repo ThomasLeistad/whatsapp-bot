@@ -1,31 +1,42 @@
-# 1. Usamos una imagen base de Node.js estable
+# Dockerfile — WhatsApp Cobranzas Onlysoft
 FROM node:18-slim
 
-# 2. Instalamos las dependencias necesarias para que Puppeteer (Chrome) corra en Linux
-# Esto es fundamental para que whatsapp-web.js no tire error en el servidor [cite: 52]
+# ── Dependencias del sistema ──
+# chromium    → para whatsapp-web.js (Puppeteer)
+# tesseract-ocr + tesseract-ocr-spa → OCR en español
+# poppler-utils → pdftoppm para convertir PDF a imagen antes del OCR
 RUN apt-get update && apt-get install -y \
     chromium \
     fonts-freefont-ttf \
+    fonts-liberation \
     libxss1 \
-    libglu1 \
+    libglu1-mesa \
+    tesseract-ocr \
+    tesseract-ocr-spa \
+    poppler-utils \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# 3. Seteamos la variable de entorno para que la librería encuentre el ejecutable de Chromium
+# ── Variables de entorno para Chromium/Puppeteer ──
 ENV CHROME_PATH=/usr/bin/chromium
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
-# 4. Creamos el directorio de la app
+# ── Directorio de trabajo ──
 WORKDIR /app
 
-# 5. Copiamos los archivos de dependencias e instalamos
+# ── Instalar dependencias Node ──
 COPY package*.json ./
-RUN npm install
+RUN npm install --omit=dev
 
-# 6. Copiamos el resto del código del bot
+# ── Copiar código fuente ──
 COPY . .
 
-# 7. Creamos la carpeta para guardar los comprobantes [cite: 10, 49]
-RUN mkdir -p comprobantes
+# ── Crear directorios necesarios ──
+RUN mkdir -p comprobantes sessions logs
 
-# 8. Comando para iniciar el bot
+# ── Puerto expuesto ──
+EXPOSE 3000
+
+# ── Comando de inicio ──
 CMD ["npm", "start"]

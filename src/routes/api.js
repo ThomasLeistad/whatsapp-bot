@@ -1,11 +1,11 @@
 // src/routes/api.js
 const express = require('express');
-const router = express.Router();
+const router  = express.Router();
 const { query } = require('../db/connection');
-const path = require('path');
-const fs = require('fs');
+const path      = require('path');
+const fs        = require('fs');
 
-// Middleware simple de autenticación para API
+// ── Auth middleware ──
 function requireAuth(req, res, next) {
   if (req.session && req.session.autenticado) return next();
   res.status(401).json({ error: 'No autorizado' });
@@ -15,28 +15,28 @@ function requireAuth(req, res, next) {
 router.get('/stats', requireAuth, async (req, res) => {
   try {
     const [hoy] = await query(`
-      SELECT 
+      SELECT
         SUM(estado='confirmado') as confirmados_hoy,
         SUM(estado='pendiente') as pendientes,
         SUM(estado='esperando_confirmacion') as esperando,
         SUM(estado='rechazado') as rechazados_hoy,
         SUM(estado='duplicado') as duplicados,
         COUNT(*) as total_hoy
-      FROM comprobantes_pago 
+      FROM comprobantes_pago
       WHERE DATE(creado) = CURDATE()
     `);
 
     const [semana] = await query(`
       SELECT COUNT(*) as total_semana,
              SUM(estado='confirmado') as confirmados_semana
-      FROM comprobantes_pago 
+      FROM comprobantes_pago
       WHERE creado >= DATE_SUB(NOW(), INTERVAL 7 DAY)
     `);
 
-    const [socios] = await query('SELECT COUNT(*) as total FROM socios_alias WHERE confirmado=1');
+    const [socios]   = await query('SELECT COUNT(*) as total_socios FROM socios_alias WHERE confirmado=1');
     const [montoHoy] = await query(`
       SELECT COALESCE(SUM(monto_extraido), 0) as monto_total
-      FROM comprobantes_pago 
+      FROM comprobantes_pago
       WHERE estado='confirmado' AND DATE(fecha_confirmacion) = CURDATE()
     `);
 
@@ -56,7 +56,7 @@ router.get('/comprobantes', requireAuth, async (req, res) => {
     if (estado) { where += ' AND cp.estado = ?'; params.push(estado); }
 
     const rows = await query(`
-      SELECT cp.*, 
+      SELECT cp.*,
              dp.nombre as pedido_nombre, dp.apellido as pedido_apellido,
              dp.pedidoID, dp.email as pedido_email
       FROM comprobantes_pago cp
@@ -76,7 +76,7 @@ router.get('/comprobantes', requireAuth, async (req, res) => {
   }
 });
 
-// ── Detalle de un comprobante ──
+// ── Detalle de comprobante ──
 router.get('/comprobantes/:id', requireAuth, async (req, res) => {
   try {
     const [comp] = await query(`
@@ -104,7 +104,7 @@ router.get('/socios', requireAuth, async (req, res) => {
       params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`);
     }
     const rows = await query(
-      `SELECT sa.*, dp.pedidoID FROM socios_alias sa 
+      `SELECT sa.*, dp.pedidoID FROM socios_alias sa
        LEFT JOIN datospedidos dp ON sa.pedido_id = dp.id
        WHERE ${where} ORDER BY sa.veces_usado DESC LIMIT ? OFFSET ?`,
       [...params, parseInt(limit), parseInt(offset)]
@@ -116,7 +116,7 @@ router.get('/socios', requireAuth, async (req, res) => {
   }
 });
 
-// ── Confirmar/Rechazar manualmente desde dashboard ──
+// ── Confirmar manualmente desde dashboard ──
 router.post('/comprobantes/:id/confirmar', requireAuth, async (req, res) => {
   try {
     const { pedido_id } = req.body;
@@ -132,13 +132,12 @@ router.post('/comprobantes/:id/confirmar', requireAuth, async (req, res) => {
       [id, pedido_id]
     );
 
-    // Aprender
     const { aprenderMatch } = require('../matching/matcher');
     const [comp] = await query('SELECT * FROM comprobantes_pago WHERE id=?', [id]);
     await aprenderMatch(pedido_id, {
       nombre: comp.nombre_extraido,
-      alias: comp.alias_extraido,
-      cbu: comp.cbu_extraido
+      alias:  comp.alias_extraido,
+      cbu:    comp.cbu_extraido
     });
 
     res.json({ ok: true });
@@ -147,12 +146,12 @@ router.post('/comprobantes/:id/confirmar', requireAuth, async (req, res) => {
   }
 });
 
-// ── Login ──
+// ── Login / Logout / Me ──
 router.post('/login', async (req, res) => {
   const { usuario, password } = req.body;
   if (usuario === process.env.ADMIN_USER && password === process.env.ADMIN_PASSWORD) {
     req.session.autenticado = true;
-    req.session.usuario = usuario;
+    req.session.usuario     = usuario;
     res.json({ ok: true });
   } else {
     res.status(401).json({ error: 'Credenciales incorrectas' });
@@ -168,10 +167,12 @@ router.get('/me', (req, res) => {
   res.json({ autenticado: !!(req.session && req.session.autenticado) });
 });
 
-// ── Servir imagen de comprobante ──
+// ── Servir imagen del comprobante ──
 router.get('/comprobantes/:id/imagen', requireAuth, async (req, res) => {
   try {
-    const [comp] = await query('SELECT archivo_path, tipo_archivo FROM comprobantes_pago WHERE id=?', [req.params.id]);
+    const [comp] = await query(
+      'SELECT archivo_path, tipo_archivo FROM comprobantes_pago WHERE id=?', [req.params.id]
+    );
     if (!comp || !fs.existsSync(comp.archivo_path)) {
       return res.status(404).send('Archivo no encontrado');
     }

@@ -1,1 +1,7 @@
-New folder.rar
+node_modules/
+.env
+sessions/
+comprobantes/
+logs/
+*.log
+.DS_Store
