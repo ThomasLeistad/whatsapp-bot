@@ -1,8 +1,7 @@
 # Dockerfile — WhatsApp Cobranzas Onlysoft
 FROM node:18-slim
 
-# ── 1. Dependencias del sistema ──
-# Lista completa de libs que Chrome necesita en Debian slim
+# ── 1. Libs del sistema para Chromium ──
 RUN apt-get update && apt-get install -y \
     chromium \
     fonts-freefont-ttf \
@@ -36,24 +35,26 @@ RUN apt-get update && apt-get install -y \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# ── 2. Variables de Puppeteer ANTES del npm install ──
-# CRÍTICO: si no están antes del npm install, Puppeteer descarga
-# su propio Chrome (~400MB) que no tiene las libs del sistema.
+WORKDIR /app
+
+# ── 2. .npmrc y package.json van PRIMERO ──
+# El .npmrc le dice al postinstall de Puppeteer que no descargue Chrome.
+# Tiene que estar en el directorio ANTES de que corra npm install.
+COPY .npmrc ./
+COPY package*.json ./
+
+# ── 3. Variables de entorno también antes de npm install ──
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV CHROME_PATH=/usr/bin/chromium
 
-# ── 3. Directorio de trabajo ──
-WORKDIR /app
+# ── 4. npm install + limpiar la caché de Puppeteer por las dudas ──
+RUN npm install --omit=dev \
+    && rm -rf /root/.cache/puppeteer
 
-# ── 4. Instalar dependencias Node ──
-COPY package*.json ./
-RUN npm install --omit=dev
-
-# ── 5. Copiar código fuente ──
+# ── 5. Copiar el resto del código ──
 COPY . .
 
-# ── 6. Directorios necesarios ──
 RUN mkdir -p comprobantes sessions logs
 
 EXPOSE 3000
