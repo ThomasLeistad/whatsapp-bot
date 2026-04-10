@@ -1,0 +1,31 @@
+{
+  "name": "whatsapp-cobranzas",
+  "version": "1.0.0",
+  "description": "Bot de automatización de cobranzas vía WhatsApp para Onlysoft",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "whatsapp-web.js": "^1.23.0",
+    "qrcode-terminal": "^0.12.0",
+    "qrcode": "^1.5.3",
+    "tesseract.js": "^5.0.4",
+    "fuse.js": "^7.0.0",
+    "mysql2": "^3.6.0",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "dotenv": "^16.3.1",
+    "multer": "^1.4.5-lts.1",
+    "axios": "^1.6.0",
+    "sharp": "^0.33.0",
+    "winston": "^3.11.0",
+    "socket.io": "^4.6.1",
+    "moment": "^2.29.4",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
