@@ -23,9 +23,45 @@ function setIO(socketio) { io = socketio; }
 //  Inicializar cliente WhatsApp
 // ──────────────────────────────────────────
 function crearCliente() {
-  // FIX: usar executablePath para que encuentre Chromium en el contenedor
+  // Buscar el ejecutable de Chromium/Chrome disponible en el sistema.
+  // Orden de prioridad: variable de entorno → rutas conocidas en Linux.
+  const { execSync } = require('child_process');
+
+  function detectarChrome() {
+    const candidatos = [
+      process.env.CHROME_PATH,
+      process.env.PUPPETEER_EXECUTABLE_PATH,
+      '/usr/bin/chromium-browser',   // Ubuntu / Debian apt
+      '/usr/bin/chromium',           // Debian slim
+      '/usr/bin/google-chrome',      // Chrome oficial
+      '/usr/bin/google-chrome-stable',
+    ].filter(Boolean);
+
+    for (const ruta of candidatos) {
+      try {
+        execSync(`test -x "${ruta}"`, { stdio: 'ignore' });
+        logger.info(`Chromium encontrado en: ${ruta}`);
+        return ruta;
+      } catch (_) {}
+    }
+
+    // Último recurso: preguntar al sistema
+    try {
+      const found = execSync('which chromium-browser || which chromium || which google-chrome', { encoding: 'utf8' }).trim().split('\n')[0];
+      if (found) { logger.info(`Chromium detectado vía which: ${found}`); return found; }
+    } catch (_) {}
+
+    throw new Error(
+      'No se encontró Chrome/Chromium. Instalá con: apt-get install -y chromium-browser\n' +
+      'O configurá la variable CHROME_PATH en el .env'
+    );
+  }
+
+  const executablePath = detectarChrome();
+
   const puppeteerArgs = {
     headless: true,
+    executablePath,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -37,12 +73,6 @@ function crearCliente() {
       '--disable-gpu'
     ]
   };
-
-  // Si hay una ruta de Chrome/Chromium configurada, usarla
-  const chromePath = process.env.CHROME_PATH || process.env.PUPPETEER_EXECUTABLE_PATH;
-  if (chromePath) {
-    puppeteerArgs.executablePath = chromePath;
-  }
 
   const client = new Client({
     authStrategy: new LocalAuth({
